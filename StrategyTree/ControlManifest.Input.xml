@@ -1,11 +1,19 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="2.0" encoding="utf-8"?>
 <manifest>
-  <control namespace="opc.pcf" constructor="StrategyTree" version="0.0.2"
+  <control namespace="opc.pcf" constructor="StrategyTree" version="0.0.4"
     display-name-key="Strategy Tree"
     description-key="Strategy Hierarchy Tree"
     control-type="standard">
 
     <data-set name="tableGrid" display-name-key="Table Grid" />
+
+    <property name="fieldPrefix" display-name-key="Field Prefix" 
+              description-key="Prefix for hierarchy fields (e.g., cr3e9_)" 
+              of-type="SingleLine.Text" default-value="cr3e9_" usage="input" />
+    
+    <property name="maxLevels" display-name-key="Maximum Levels" 
+              description-key="Maximum hierarchy levels to process" 
+              of-type="Whole.None" default-value="15" usage="input" />
 
     <resources>
       <code path="index.ts" order="1" />

@@ -8,23 +8,17 @@ export class StrategyTree
   private searchInput: HTMLInputElement;
   private context: ComponentFramework.Context<IInputs>;
 
-private readonly LEVEL_COLUMNS = [
-  "cr3e9_gbslevel1",
-  "cr3e9_gbslevel2",
-  "cr3e9_gbslevel3",
-  "cr3e9_gbslevel4",
-  "cr3e9_gbslevel5",
-  "cr3e9_gbslevel6",
-  "cr3e9_gbslevel7",
-  "cr3e9_gbslevel8",
-  "cr3e9_gbslevel9",
-  "cr3e9_gbslevel10",
-  "cr3e9_gbslevel11",
-  "cr3e9_gbslevel12",
-  "cr3e9_gbslevel13",
-  "cr3e9_gbslevel14",
-  "cr3e9_gbslevel15"
-];
+  // Dynamic level columns based on configuration
+  private get LEVEL_COLUMNS(): string[] {
+    const prefix = String(this.context.parameters.fieldPrefix || "cr3e9_");
+    const maxLevels = Number(this.context.parameters.maxLevels) || 15;
+    
+    const columns: string[] = [];
+    for (let i = 1; i <= maxLevels; i++) {
+      columns.push(`${prefix}gbslevel${i}`);
+    }
+    return columns;
+  }
 
   constructor() {
     // init
@@ -48,7 +42,7 @@ private readonly LEVEL_COLUMNS = [
     // ---- Header ----
     const header = document.createElement("div");
     header.style.cssText = `
-      background: #0078d4;
+      background: #d13438;
       color: white;
       padding: 12px 16px;
       font-size: 15px;
@@ -129,7 +123,8 @@ private readonly LEVEL_COLUMNS = [
             parentPath: parentPath || null,
             children: [],
             expanded: !parentPath, // root level open by default
-            visible: true
+            visible: true,
+            checked: false // Initialize checkbox state
           });
         }
         parentPath = fullPath;
@@ -173,12 +168,41 @@ private readonly LEVEL_COLUMNS = [
       list-style: none;
       margin: 0;
       padding-left: ${depth === 0 ? 0 : 18}px;
+      position: relative;
     `;
 
-    nodes.forEach(node => {
+    nodes.forEach((node, index) => {
       const li = document.createElement("li");
       li.dataset.path = node.fullPath;
-      li.style.cssText = "margin: 2px 0;";
+      li.style.cssText = "margin: 2px 0; position: relative;";
+
+      // Connection line for child nodes
+      if (depth > 0 && index < nodes.length - 1) {
+        const verticalLine = document.createElement("div");
+        verticalLine.style.cssText = `
+          position: absolute;
+          left: -12px;
+          top: 20px;
+          width: 1px;
+          height: calc(100% - 20px);
+          background-color: #d1d1d1;
+        `;
+        li.appendChild(verticalLine);
+      }
+
+      // Horizontal connection line
+      if (depth > 0) {
+        const horizontalLine = document.createElement("div");
+        horizontalLine.style.cssText = `
+          position: absolute;
+          left: -12px;
+          top: 12px;
+          width: 12px;
+          height: 1px;
+          background-color: #d1d1d1;
+        `;
+        li.appendChild(horizontalLine);
+      }
 
       const row = document.createElement("div");
       row.style.cssText = `
@@ -195,6 +219,20 @@ private readonly LEVEL_COLUMNS = [
         row.style.background = "transparent";
       });
 
+      // Checkbox
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = node.checked;
+      checkbox.style.cssText = `
+        margin-right: 8px;
+        cursor: pointer;
+      `;
+      checkbox.addEventListener("change", (e) => {
+        e.stopPropagation();
+        this.toggleNodeSelection(node, checkbox.checked);
+      });
+      row.appendChild(checkbox);
+
       // Toggle arrow
       const arrow = document.createElement("span");
       if (node.children.length > 0) {
@@ -203,8 +241,10 @@ private readonly LEVEL_COLUMNS = [
           margin-right: 6px; font-size: 11px;
           color: #0078d4; min-width: 12px;
           transition: transform 0.15s;
+          cursor: pointer;
         `;
-        row.addEventListener("click", () => {
+        arrow.addEventListener("click", (e) => {
+          e.stopPropagation();
           node.expanded = !node.expanded;
           arrow.innerText = node.expanded ? "▾" : "▸";
           if (childUL) {
@@ -220,6 +260,7 @@ private readonly LEVEL_COLUMNS = [
       // Label
       const label = document.createElement("span");
       label.innerText = node.label;
+      label.style.cssText = "flex: 1; cursor: pointer;";
       row.appendChild(label);
 
       li.appendChild(row);
@@ -236,6 +277,46 @@ private readonly LEVEL_COLUMNS = [
     });
 
     return ul;
+  }
+
+  // Hierarchical selection logic
+  private toggleNodeSelection(node: TreeNode, checked: boolean): void {
+    node.checked = checked;
+    
+    // Update all children
+    this.updateChildrenSelection(node, checked);
+    
+    // Update parent state
+    this.updateParentSelection(node);
+    
+    // Re-render the tree
+    this.renderTree(this.getRoots());
+  }
+
+  private updateChildrenSelection(node: TreeNode, checked: boolean): void {
+    node.children.forEach(child => {
+      child.checked = checked;
+      this.updateChildrenSelection(child, checked);
+    });
+  }
+
+  private updateParentSelection(node: TreeNode): void {
+    const parent = this.allNodes.find(n => n.fullPath === node.parentPath);
+    if (parent) {
+      const allChildrenChecked = parent.children.every(child => child.checked);
+      const someChildrenChecked = parent.children.some(child => child.checked);
+      
+      if (allChildrenChecked) {
+        parent.checked = true;
+      } else if (someChildrenChecked) {
+        // For now, keep it unchecked. Could add indeterminate state later
+        parent.checked = false;
+      } else {
+        parent.checked = false;
+      }
+      
+      this.updateParentSelection(parent);
+    }
   }
 
   // ----------------------------------------------------------------
@@ -334,4 +415,5 @@ interface TreeNode {
   children: TreeNode[];
   expanded: boolean;
   visible: boolean;
+  checked: boolean;
 }
