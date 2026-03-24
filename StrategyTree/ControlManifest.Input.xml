@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest>
+  <control namespace="opc.pcf" constructor="StrategyTree" version="0.0.2"
+    display-name-key="Strategy Tree"
+    description-key="Strategy Hierarchy Tree"
+    control-type="standard">
+
+    <data-set name="tableGrid" display-name-key="Table Grid" />
+
+    <resources>
+      <code path="index.ts" order="1" />
+    </resources>
+
+  </control>
+</manifest>
